@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <set>
 #include <exception>
+#include <cstdbool>
 
 #include <cpr/cpr.h>
 
@@ -39,7 +40,7 @@ namespace idb2cpp {
         std::string token;
 
     public:
-        ServerInfo(const std::string& url, uint16_t port, const std::string& org, const std::string& bucket, const std::string& token) :
+        ServerInfo(const std::string& url, const std::string& org, const std::string& bucket, const std::string& token) :
             url(url), org(org), bucket(bucket), token(token) {
 
         }
@@ -50,7 +51,7 @@ namespace idb2cpp {
         int responseCode;
         std::string response;
 
-        PostException(int responseCode, const std::string& response) : responseCode(responseCode), response(response), std::runtime_error(format("Error posting data: %d", responseCode)) {
+        PostException(int responseCode, const std::string& response) : std::runtime_error(format("Error posting data: %d", responseCode)), responseCode(responseCode), response(response) {
 
         }
     };
@@ -90,8 +91,8 @@ namespace idb2cpp {
             return *this;
         }
 
-        inline Builder& field(const std::string& key, const std::string& value) {
-            writes.back().fields.push_back({key, {value, true}});
+        inline Builder& field(const std::string& key, const std::string& value, bool is_string=true) {
+            writes.back().fields.push_back({key, {value, is_string}});
             return *this;
         }
         inline Builder& field(const std::string& key, uint64_t value) {
