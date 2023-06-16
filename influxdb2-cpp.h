@@ -48,10 +48,9 @@ namespace idb2cpp {
 
     class PostException : public std::runtime_error {
     public:
-        int responseCode;
-        std::string response;
+        cpr::Response resp;
 
-        PostException(int responseCode, const std::string& response) : std::runtime_error(format("Error posting data: %d", responseCode)), responseCode(responseCode), response(response) {
+        PostException(const cpr::Response& r) : std::runtime_error(format("Error posting data: %d", r.status_code)), resp(r) {
 
         }
     };
@@ -131,7 +130,26 @@ namespace idb2cpp {
             );
 
             if(r.status_code != 200) {
-                throw PostException(r.status_code, r.text);
+                throw PostException(r);
+            }
+
+            writes.push_back({});
+        }
+
+        inline void post_http_async(const ServerInfo& server_info) {
+            std::string line_str;
+            for(size_t i = 0; i<writes.size(); i++) {
+                line_str += construct_line_str(writes.back());
+            }
+
+            cpr::Response r = cpr::Post(
+                cpr::Url{server_info.url}, cpr::Header{{"Authorization", format("Token %s", server_info.token)}},
+                cpr::Parameters{{"bucket",server_info.bucket}, {"org",server_info.org}},
+                cpr::Body{line_str}
+            );
+
+            if(r.status_code != 200) {
+                throw PostException(r);
             }
 
             writes.push_back({});
