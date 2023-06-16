@@ -117,42 +117,31 @@ namespace idb2cpp {
             return *this;
         }
 
-        inline void post_http(const ServerInfo& server_info) {
+        inline cpr::Response post_http(const ServerInfo& server_info) {
             std::string line_str;
             for(size_t i = 0; i<writes.size(); i++) {
                 line_str += construct_line_str(writes.back());
             }
 
-            cpr::Response r = cpr::Post(
+            return cpr::Post(
                 cpr::Url{server_info.url}, cpr::Header{{"Authorization", format("Token %s", server_info.token)}},
                 cpr::Parameters{{"bucket",server_info.bucket}, {"org",server_info.org}},
                 cpr::Body{line_str}
             );
-
-            if(r.status_code != 200) {
-                throw PostException(r);
-            }
-
-            writes.push_back({});
         }
 
-        inline void post_http_async(const ServerInfo& server_info) {
+        template<typename FUNC>
+        inline auto post_http_async(const ServerInfo& server_info, const FUNC& func) {
             std::string line_str;
             for(size_t i = 0; i<writes.size(); i++) {
-                line_str += construct_line_str(writes.back());
+                line_str += construct_line_str(writes[i]);
             }
 
-            cpr::Response r = cpr::Post(
+            return cpr::PostCallback(func,
                 cpr::Url{server_info.url}, cpr::Header{{"Authorization", format("Token %s", server_info.token)}},
                 cpr::Parameters{{"bucket",server_info.bucket}, {"org",server_info.org}},
                 cpr::Body{line_str}
             );
-
-            if(r.status_code != 200) {
-                throw PostException(r);
-            }
-
-            writes.push_back({});
         }
     
     private:
