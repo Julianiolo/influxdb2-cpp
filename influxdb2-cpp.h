@@ -10,6 +10,8 @@
 #include <exception>
 #include <cstdbool>
 
+#include <iostream>
+
 #include <cpr/cpr.h>
 
 #define IDB2CPP_ASSERT(x) if(!(x)) {fprintf(stderr,"Abort! \"%s\" @%s:%u\n", #x, __FILE__, __LINE__); abort();};
@@ -54,6 +56,29 @@ namespace idb2cpp {
 
         }
     };
+
+    auto query(const std::string& query, const ServerInfo& server_info) {
+        return cpr::Post(
+            cpr::Url{server_info.url + "/api/v2/query"},
+            cpr::Header{{"Authorization", format("Token %s", server_info.token.c_str())}},
+            cpr::Header{{"Accept", "application/csv"}},
+            cpr::Header{{"Content-type", "application/vnd.flux"}},
+            cpr::Parameters{{"org",server_info.org}},
+            cpr::Body{query}
+        );
+    }
+
+    template<typename FUNC>
+    auto query_async(const std::string& query, const ServerInfo& server_info, const FUNC& func) {
+        return cpr::PostCallback(func,
+            cpr::Url{server_info.url + "/api/v2/query"}, 
+            cpr::Header{{"Authorization", format("Token %s", server_info.token.c_str())}},
+            cpr::Header{{"Accept", "application/csv"}},
+            cpr::Header{{"Content-type", "application/vnd.flux"}},
+            cpr::Parameters{{"org",server_info.org}},
+            cpr::Body{query}
+        );
+    }
 
     class Builder {
     private:
@@ -120,11 +145,11 @@ namespace idb2cpp {
         inline cpr::Response post_http(const ServerInfo& server_info) {
             std::string line_str;
             for(size_t i = 0; i<writes.size(); i++) {
-                line_str += construct_line_str(writes.back());
+                line_str += construct_line_str(writes[i]);
             }
 
             return cpr::Post(
-                cpr::Url{server_info.url}, cpr::Header{{"Authorization", format("Token %s", server_info.token)}},
+                cpr::Url{server_info.url + "/api/v2/write"}, cpr::Header{{"Authorization", format("Token %s", server_info.token)}},
                 cpr::Parameters{{"bucket",server_info.bucket}, {"org",server_info.org}},
                 cpr::Body{line_str}
             );
@@ -138,7 +163,7 @@ namespace idb2cpp {
             }
 
             return cpr::PostCallback(func,
-                cpr::Url{server_info.url}, cpr::Header{{"Authorization", format("Token %s", server_info.token)}},
+                cpr::Url{server_info.url + "/api/v2/write"}, cpr::Header{{"Authorization", format("Token %s", server_info.token)}},
                 cpr::Parameters{{"bucket",server_info.bucket}, {"org",server_info.org}},
                 cpr::Body{line_str}
             );
